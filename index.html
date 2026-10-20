@@ -74,7 +74,42 @@ select{padding:6px;border-radius:8px;background:var(--card);color:var(--ink);bor
 </div>
 <script>
 const BOSSES=[["👹","Raja Gorengan"],["🐲","Naga Sambal"],["🦖","Rex Kerupuk"],["👾","Alien Bakso"]];
+const USED=new Set();
 const POOL=[
+ {c:"Kuliner",h:["Bulat kenyal berkuah, dijual keliling pakai gerobak","Ada versi urat dan telur"],a:["bakso"]},
+ {c:"Kuliner",h:["Berkuah kuning bening, ada koya di atasnya","Ada versi Betawi dan Lamongan"],a:["soto"]},
+ {c:"Kuliner",h:["Daging ditusuk lalu dibakar, disiram bumbu kacang","Sering dijual dengan lontong"],a:["sate"]},
+ {c:"Kuliner",h:["Sayuran rebus disiram saus kacang","Namanya terdiri dari dua kata yang sama"],a:["gadogado"]},
+ {c:"Kuliner",h:["Camilan manis dari buah berkulit kuning, digoreng pakai tepung","Enak dimakan saat sore"],a:["pisanggoreng"]},
+ {c:"Kuliner",h:["Nasi diolah di wajan dengan kecap dan telur ceplok","Sarapan paling umum di Indonesia"],a:["nasigoreng"]},
+ {c:"Singkatan Gaul",h:["Lagi tidak ada kerjaan, bingung mau ngapain","Kata anak muda, 5 huruf"],a:["gabut"]},
+ {c:"Singkatan Gaul",h:["Gampang terbawa perasaan","Singkatan, 5 huruf"],a:["baper"]},
+ {c:"Singkatan Gaul",h:["Pemberi harapan palsu","Singkatan, 3 huruf"],a:["php"]},
+ {c:"Singkatan Gaul",h:["Slang untuk keuntungan atau uang","Berawalan huruf C"],a:["cuan"]},
+ {c:"Singkatan Gaul",h:["Gerak cepat","Singkatan, 6 huruf"],a:["gercep"]},
+ {c:"Singkatan Gaul",h:["Versi gaul dari kata santai","Berawalan huruf S"],a:["santuy"]},
+ {c:"Tebak Merek",h:["Minuman soda merah dengan logo gelombang putih","Berawalan huruf C"],a:["cocacola"]},
+ {c:"Tebak Merek",h:["Merek motor sejuta umat, logo sayap","Berawalan huruf H"],a:["honda"]},
+ {c:"Tebak Merek",h:["Aplikasi ojek online berwarna hijau","Berawalan huruf G"],a:["gojek"]},
+ {c:"Tebak Merek",h:["Toko online oranye dengan logo tas belanja","Berawalan huruf S"],a:["shopee"]},
+ {c:"Tebak Merek",h:["Biskuit hitam putih yang enak dipelintir dan dicelup susu","Berawalan huruf O"],a:["oreo"]},
+ {c:"Tebak Merek",h:["Gerai ayam goreng dengan wajah kakek di logonya","Singkatan, 3 huruf"],a:["kfc"]},
+ {c:"Peribahasa",h:["Lengkapi: Sedia payung sebelum ...","Berhubungan dengan cuaca, 5 huruf"],a:["hujan"]},
+ {c:"Peribahasa",h:["Lengkapi: Malu bertanya sesat di ...","Tempat untuk berjalan, 5 huruf"],a:["jalan"]},
+ {c:"Peribahasa",h:["Lengkapi: Berakit rakit ke hulu, berenang renang ke ...","Tepi sungai atau laut, 6 huruf"],a:["tepian"]},
+ {c:"Peribahasa",h:["Lengkapi: Rajin pangkal ...","Lawan kata bodoh, 6 huruf"],a:["pandai"]},
+ {c:"Peribahasa",h:["Lengkapi: Ada gula ada ...","Serangga kecil yang suka manis, 5 huruf"],a:["semut"]},
+ {c:"Peribahasa",h:["Lengkapi: Tong kosong nyaring ...","Berkaitan dengan suara, 7 huruf"],a:["bunyinya"]},
+ {c:"Peribahasa",h:["Lengkapi: Nasi sudah menjadi ...","Makanan lembut berkuah, 5 huruf"],a:["bubur"]},
+ {c:"Peribahasa",h:["Lengkapi: Bagai kucing dengan ...","Hewan penjaga rumah, 6 huruf"],a:["anjing"]},
+ {c:"Julukan Kota",h:["Kota Pahlawan","Ibu kota Jawa Timur"],a:["surabaya"]},
+ {c:"Julukan Kota",h:["Kota Kembang","Ibu kota Jawa Barat"],a:["bandung"]},
+ {c:"Julukan Kota",h:["Kota Gudeg dan Kota Pelajar","Punya keraton dan Malioboro"],a:["yogyakarta","jogja","yogya"]},
+ {c:"Julukan Kota",h:["Pulau Dewata","Terkenal dengan Pantai Kuta"],a:["bali"]},
+ {c:"Julukan Kota",h:["Kota Pempek","Ada Jembatan Ampera"],a:["palembang"]},
+ {c:"Julukan Kota",h:["Kota Apel","Ada Bakso Bakar dan Alun Alun Tugu"],a:["malang"]},
+ {c:"Julukan Kota",h:["Kota Hujan","Ada Kebun Raya dan Istana Presiden"],a:["bogor"]},
+ {c:"Julukan Kota",h:["Kota Coto dan Pisang Epe","Ibu kota Sulawesi Selatan"],a:["makassar"]},
  {c:"Kuliner",h:["Gurih, berkuah santan, ada ayam","Teman ketupat saat Lebaran"],a:["opor"]},
  {c:"Kuliner",h:["Daging empuk, bumbu rempah, masakan Padang","Dimasak berjam jam sampai kering"],a:["rendang"]},
  {c:"Singkatan Gaul",h:["Malas gerak, maunya rebahan","Dua kata, 5 huruf"],a:["mager"]},
@@ -95,8 +130,8 @@ function viewers(){return Math.max(1,+$("bots").value+1)}
 function startBoss(){
   S.boss=BOSSES[Math.floor(Math.random()*BOSSES.length)];
   S.max=S.hp=Math.max(150,viewers()*12);
-  const cats=["Kuliner","Singkatan Gaul","Tebak Merek"];
-  S.qs=cats.map(c=>{const l=POOL.filter(q=>q.c===c);return l[Math.floor(Math.random()*l.length)]});
+  const cats=["Kuliner","Singkatan Gaul","Tebak Merek","Peribahasa","Julukan Kota"].sort(()=>Math.random()-.5).slice(0,3);
+  S.qs=cats.map(c=>{const l=POOL.filter(q=>q.c===c);let f=l.filter(q=>!USED.has(q));if(!f.length){l.forEach(q=>USED.delete(q));f=l}const q=f[Math.floor(Math.random()*f.length)];USED.add(q);return q});
   S.ri=0;S.sc={};S.ask=null;
   $("face").textContent=S.boss[0];$("face").className="";$("bname").textContent=S.boss[1];
   $("rule").textContent="Ketik SERANG untuk menghajar boss. Jawab benar untuk serangan besar!";
