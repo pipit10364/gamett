@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Boss Battle Chat</title>
+<style>
+:root{--bg:#f4efe6;--card:#fff;--ink:#1d1a2b;--mut:#6b6580;--acc:#7c3aed;--hp:#ef4444;--ok:#16a34a;--gold:#f59e0b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#140f24;--card:#221a3b;--ink:#f5f1ff;--mut:#a89fc4}}
+:root[data-theme="dark"]{--bg:#140f24;--card:#221a3b;--ink:#f5f1ff;--mut:#a89fc4}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;justify-content:center}
+.app{width:100%;max-width:480px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.card{background:var(--card);border-radius:16px;padding:12px}
+.top{display:flex;justify-content:space-between;align-items:center;font-weight:700}
+.pill{background:var(--acc);color:#fff;border-radius:99px;padding:3px 10px;font-size:13px}
+.boss{text-align:center}
+#face{font-size:84px;line-height:1;display:inline-block;transition:transform .15s}
+#face.hit{transform:scale(.85) rotate(-8deg)}
+#face.dead{filter:grayscale(1);transform:rotate(90deg)}
+#bname{font-weight:800;font-size:20px;margin:4px 0}
+.bar{height:20px;background:rgba(127,127,127,.25);border-radius:99px;overflow:hidden;position:relative}
+.bar>i{display:block;height:100%;background:var(--hp);width:100%;transition:width .4s}
+.bar span{position:absolute;inset:0;text-align:center;font-size:12px;font-weight:700;line-height:20px;color:#fff}
+.rule{text-align:center;font-weight:700;color:var(--acc)}
+#cat{font-size:12px;color:var(--mut);letter-spacing:.08em;text-transform:uppercase}
+.hint{font-size:20px;font-weight:700;margin:6px 0}
+.hint.h2{color:var(--gold)}
+.tbar{height:8px;background:rgba(127,127,127,.25);border-radius:9px;overflow:hidden}
+.tbar>i{display:block;height:100%;background:var(--acc);width:100%}
+#feed{height:120px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;font-size:14px}
+#feed div b{color:var(--acc)}
+#feed .big{color:var(--ok);font-weight:700}
+.row{display:flex;gap:8px}
+input[type=text]{flex:1;min-width:0;padding:11px;border-radius:12px;border:2px solid var(--acc);background:var(--card);color:var(--ink);font-size:16px}
+button{border:0;border-radius:12px;padding:11px 14px;font-weight:700;background:var(--acc);color:#fff;font-size:15px}
+button.alt{background:rgba(127,127,127,.25);color:var(--ink)}
+.lb{font-size:14px}
+.lb h4{margin:0 0 6px}
+.lb div{display:flex;justify-content:space-between;padding:2px 0}
+.opt{display:flex;gap:10px;align-items:center;font-size:13px;color:var(--mut);flex-wrap:wrap}
+select{padding:6px;border-radius:8px;background:var(--card);color:var(--ink);border:1px solid var(--mut)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="card top"><span id="rnd">Siap</span><span class="pill" id="ph">Menunggu</span></div>
+  <div class="card boss">
+    <div id="face">👹</div>
+    <div id="bname">Boss</div>
+    <div class="bar"><i id="hpf"></i><span id="hpt"></span></div>
+  </div>
+  <div class="card">
+    <div class="rule" id="rule">Ketik SERANG untuk menghajar boss. Jawab benar untuk serangan besar!</div>
+    <div id="cat"></div>
+    <div class="hint" id="h1"></div>
+    <div class="hint h2" id="h2"></div>
+    <div class="tbar"><i id="tf"></i></div>
+  </div>
+  <div class="card"><div id="feed"></div></div>
+  <div class="row">
+    <input type="text" id="msg" placeholder="Ketik di sini (simulasi chat)" autocomplete="off">
+    <button id="send">Kirim</button>
+  </div>
+  <div class="card opt">
+    <label>Penonton bot
+      <select id="bots"><option value="0">0</option><option value="10" selected>10</option><option value="25">25</option></select>
+    </label>
+    <button class="alt" id="start">Mulai Boss</button>
+  </div>
+  <div class="card lb"><h4>Skor boss ini</h4><div id="lb"></div></div>
+  <div class="card lb"><h4>Leaderboard mingguan</h4><div id="wk"></div></div>
+</div>
+<script>
+const BOSSES=[["👹","Raja Gorengan"],["🐲","Naga Sambal"],["🦖","Rex Kerupuk"],["👾","Alien Bakso"]];
+const POOL=[
+ {c:"Kuliner",h:["Gurih, berkuah santan, ada ayam","Teman ketupat saat Lebaran"],a:["opor"]},
+ {c:"Kuliner",h:["Daging empuk, bumbu rempah, masakan Padang","Dimasak berjam jam sampai kering"],a:["rendang"]},
+ {c:"Singkatan Gaul",h:["Malas gerak, maunya rebahan","Dua kata, 5 huruf"],a:["mager"]},
+ {c:"Singkatan Gaul",h:["Kalau mau sesuatu tapi tidak punya duit","Singkatan dari bokek"],a:["bokek","gabut"]},
+ {c:"Tebak Merek",h:["Air minum kemasan, logo gunung","Berawalan huruf A"],a:["aqua"]},
+ {c:"Tebak Merek",h:["Mi instan paling terkenal, warna kuning","Berawalan huruf I"],a:["indomie"]}
+];
+const $=id=>document.getElementById(id);
+const norm=s=>s.toLowerCase().replace(/[^a-z0-9]/g,"");
+const ATK_CD=3000,Q_TIME=20000,INTRO=5000,REVEAL=5000,END=10000;
+let S={phase:"idle",hp:0,max:0,ri:0,qs:[],t0:0,done:new Set(),first:0,cd:{},sc:{},ask:null,boss:null,bots:[],hintShown:false};
+function weekly(){try{return JSON.parse(localStorage.getItem("bb_week")||"{}")}catch(e){return {}}}
+function saveWeekly(o){try{localStorage.setItem("bb_week",JSON.stringify(o))}catch(e){}}
+function log(html,cls){const f=$("feed"),d=document.createElement("div");if(cls)d.className=cls;d.innerHTML=html;f.appendChild(d);while(f.children.length>7)f.removeChild(f.firstChild)}
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function setPhase(p,label){S.phase=p;S.t0=Date.now();$("ph").textContent=label}
+function viewers(){return Math.max(1,+$("bots").value+1)}
+function startBoss(){
+  S.boss=BOSSES[Math.floor(Math.random()*BOSSES.length)];
+  S.max=S.hp=Math.max(150,viewers()*12);
+  const cats=["Kuliner","Singkatan Gaul","Tebak Merek"];
+  S.qs=cats.map(c=>{const l=POOL.filter(q=>q.c===c);return l[Math.floor(Math.random()*l.length)]});
+  S.ri=0;S.sc={};S.ask=null;
+  $("face").textContent=S.boss[0];$("face").className="";$("bname").textContent=S.boss[1];
+  $("rule").textContent="Ketik SERANG untuk menghajar boss. Jawab benar untuk serangan besar!";
+  $("cat").textContent="";$("h1").textContent="";$("h2").textContent="";
+  $("rnd").textContent="Boss muncul";
+  setPhase("intro","Bersiap");
+  log("Boss muncul: "+esc(S.boss[1]),"big");
+  upd();
+}
+function startQ(){
+  S.ask=S.qs[S.ri];S.done=new Set();S.first=0;S.hintShown=false;S.cdQ={};
+  $("rnd").textContent="Ronde "+(S.ri+1)+" dari 3";
+  $("cat").textContent="Kategori: "+S.ask.c;
+  $("h1").textContent="Petunjuk 1: "+S.ask.h[0];$("h2").textContent="";
+  setPhase("q","Jawab!");
+}
+function reveal(){
+  setPhase("rev","Reveal");
+  $("h2").textContent="";$("h1").textContent="Jawaban: "+S.ask.a[0].toUpperCase();
+  const top=Object.entries(S.sc).sort((a,b)=>b[1]-a[1])[0];
+  log("Penyerang terbaik: "+(top?esc(top[0])+" ("+top[1]+")":"belum ada"),"big");
+}
+function finish(win){
+  setPhase("end",win?"Menang":"Boss kabur");
+  $("cat").textContent="";$("h2").textContent="";
+  if(win){$("face").className="dead";$("h1").textContent="BOSS TUMBANG! 🎉";}
+  else{const p=Math.round(S.hp/S.max*100);$("h1").textContent="Boss kabur dengan sisa HP "+p+"%. Tunggu balas dendam di LIVE berikutnya.";}
+  const w=weekly();Object.entries(S.sc).forEach(([u,v])=>w[u]=(w[u]||0)+v);saveWeekly(w);
+  rank();
+}
+function dmg(u,n,label){
+  if(S.hp<=0||!(S.phase==="intro"||S.phase==="q"))return;
+  S.hp=Math.max(0,S.hp-n);S.sc[u]=(S.sc[u]||0)+n;
+  $("face").classList.add("hit");setTimeout(()=>$("face").classList.remove("hit"),150);
+  if(n>1)log("<b>"+esc(u)+"</b> "+label+" -"+n,"big");
+  upd();
+  if(S.hp<=0)finish(true);
+}
+// Titik masuk chat. Ganti pemanggilnya dengan event chat TikTok-Live-Connector.
+function handleChat(user,text){
+  const t=norm(text);if(!t||S.phase==="idle")return;
+  log("<b>"+esc(user)+"</b>: "+esc(text));
+  const now=Date.now();
+  if(t==="serang"){
+    if(now-(S.cd[user]||0)<ATK_CD)return;
+    S.cd[user]=now;dmg(user,1,"menyerang");return;
+  }
+  if(S.phase==="q"&&S.ask&&S.ask.a.map(norm).includes(t)&&!S.done.has(user)){
+    S.done.add(user);
+    const bonus=[15,10,5][S.first]||0;S.first++;
+    dmg(user,10+bonus,bonus?"jawab benar (bonus "+bonus+")":"jawab benar");
+  }
+}
+function upd(){
+  const p=S.max?S.hp/S.max*100:0;
+  $("hpf").style.width=p+"%";$("hpt").textContent=S.hp+" / "+S.max;
+  const e=Object.entries(S.sc).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  $("lb").innerHTML=e.length?e.map((x,i)=>"<div><span>"+(i+1)+". "+esc(x[0])+"</span><b>"+x[1]+"</b></div>").join(""):"<div><span>Belum ada</span></div>";
+}
+function rank(){
+  const e=Object.entries(weekly()).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  $("wk").innerHTML=e.length?e.map((x,i)=>"<div><span>"+(i+1)+". "+esc(x[0])+"</span><b>"+x[1]+"</b></div>").join(""):"<div><span>Belum ada</span></div>";
+}
+setInterval(()=>{
+  if(S.phase==="idle")return;
+  const el=Date.now()-S.t0;
+  if(S.phase==="intro"){$("tf").style.width=(100-el/INTRO*100)+"%";if(el>=INTRO)startQ()}
+  else if(S.phase==="q"){
+    $("tf").style.width=(100-el/Q_TIME*100)+"%";
+    if(el>=Q_TIME/2&&!S.hintShown){S.hintShown=true;$("h2").textContent="Petunjuk 2: "+S.ask.h[1]}
+    if(el>=Q_TIME)reveal();
+  }else if(S.phase==="rev"){
+    $("tf").style.width=(100-el/REVEAL*100)+"%";
+    if(el>=REVEAL){S.ri++;if(S.hp<=0)finish(true);else if(S.ri>=3)finish(false);else startQ()}
+  }else if(S.phase==="end"){
+    $("tf").style.width=(100-el/END*100)+"%";
+    if(el>=END)startBoss();
+  }
+  botTick();
+},250);
+const NAMES=["Sari","Budi","Dewi","Andi","Rina","Joko","Mita","Fajar","Nia","Bayu","Tia","Rudi","Lina","Dimas","Yuni","Eko","Wulan","Gita","Hendra","Putri","Agus","Siska","Reza","Ayu","Doni"];
+function botTick(){
+  if(S.phase!=="q"&&S.phase!=="intro")return;
+  const n=+$("bots").value;
+  for(let i=0;i<n;i++){
+    if(Math.random()<0.06)handleChat(NAMES[i],"SERANG");
+    if(S.phase==="q"&&S.ask&&Math.random()<0.012)handleChat(NAMES[i],S.ask.a[0]);
+  }
+}
+function submit(){const v=$("msg").value.trim();if(!v)return;handleChat("Kamu",v);$("msg").value=""}
+$("send").onclick=submit;
+$("msg").addEventListener("keydown",e=>{if(e.key==="Enter")submit()});
+$("start").onclick=startBoss;
+rank();upd();
+</script>
+</body>
+</html>
